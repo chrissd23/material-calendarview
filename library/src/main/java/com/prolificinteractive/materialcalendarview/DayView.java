@@ -38,7 +38,7 @@ import static com.prolificinteractive.materialcalendarview.MaterialCalendarView.
 @SuppressLint("ViewConstructor")
 class DayView extends CheckedTextView {
 
- private CalendarDay date;
+    private CalendarDay date;
     private int selectionColor = Color.GRAY;
 
     private final int fadeTime;
@@ -52,6 +52,7 @@ class DayView extends CheckedTextView {
     @ShowOtherDates
     private int showOtherDates = MaterialCalendarView.SHOW_DEFAULTS;
     private Drawable drawable;
+
 
     public DayView(Context context, CalendarDay day) {
         super(context);
@@ -171,11 +172,13 @@ class DayView extends CheckedTextView {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         if (customBackground != null) {
-            canvas.getClipBounds(tempRect);
             customBackground.setBounds(tempRect);
             customBackground.setState(getDrawableState());
             customBackground.draw(canvas);
         }
+
+        drawable.setBounds(tempRect);
+
         super.onDraw(canvas);
     }
 
@@ -183,18 +186,18 @@ class DayView extends CheckedTextView {
         if (selectionDrawable != null) {
             setBackgroundDrawable(selectionDrawable);
         } else {
-            drawable = generateBackground(selectionColor, fadeTime);
+            drawable = generateBackground(selectionColor, fadeTime, tempRect);
             setBackgroundDrawable(drawable);
         }
     }
 
-    private static Drawable generateBackground(int color, int fadeTime) {
+    private static Drawable generateBackground(int color, int fadeTime, Rect tempRect) {
         StateListDrawable drawable = new StateListDrawable();
         drawable.setExitFadeDuration(fadeTime);
 
         drawable.addState(new int[]{android.R.attr.state_checked}, generateCircleDrawable(color));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            drawable.addState(new int[]{android.R.attr.state_pressed}, generateRippleDrawable(color));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            drawable.addState(new int[]{android.R.attr.state_pressed}, generateRippleDrawable(color, tempRect));
         } else {
             drawable.addState(new int[]{android.R.attr.state_pressed}, generateCircleDrawable(color));
         }
@@ -215,10 +218,41 @@ class DayView extends CheckedTextView {
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP_MR1)
-    private static Drawable generateRippleDrawable(final int color) {
+    private static Drawable generateRippleDrawable(final int color, Rect tempRect) {
         ColorStateList list = ColorStateList.valueOf(color);
         Drawable mask = generateCircleDrawable(Color.WHITE);
-        return new RippleDrawable(list, null, mask);
+
+        RippleDrawable rippleDrawable = new RippleDrawable(list, null, mask);
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP) {
+            rippleDrawable.setBounds(tempRect);
+        }
+
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP_MR1) {
+            int center = (tempRect.left + tempRect.right) / 2;
+            rippleDrawable.setHotspotBounds(center, tempRect.top, center, tempRect.bottom);
+        }
+
+        return rippleDrawable;
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        calculateBounds(right - left, bottom - top);
+        regenerateBackground();
+    }
+
+    private void calculateBounds(int width, int height) {
+        final int radius = Math.min(height, width);
+        // Lollipop platform bug. Rect offset needs to be divided by 4 instead of 2
+        final int offsetDivisor = Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP ? 4 : 2;
+        final int offset = Math.abs(height - width) / offsetDivisor;
+
+        if (width >= height) {
+            tempRect.set(offset, 0, radius + offset, height);
+        } else {
+            tempRect.set(0, offset, width, radius + offset);
+        }
     }
 
     /**
