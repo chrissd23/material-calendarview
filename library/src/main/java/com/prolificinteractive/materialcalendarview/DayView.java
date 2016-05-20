@@ -193,7 +193,7 @@ class DayView extends CheckedTextView {
         drawable.setExitFadeDuration(fadeTime);
 
         drawable.addState(new int[]{android.R.attr.state_checked}, generateCircleDrawable(color));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             drawable.addState(new int[]{android.R.attr.state_pressed}, generateRippleDrawable(color));
         } else {
             drawable.addState(new int[]{android.R.attr.state_pressed}, generateCircleDrawable(color));
@@ -214,7 +214,7 @@ class DayView extends CheckedTextView {
         return new SquareDrawable(drawable);
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     private static Drawable generateRippleDrawable(final int color) {
         ColorStateList list = ColorStateList.valueOf(color);
         Drawable mask = generateCircleDrawable(Color.WHITE);
